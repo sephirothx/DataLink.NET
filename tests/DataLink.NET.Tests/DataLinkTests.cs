@@ -8,13 +8,13 @@ namespace DataLink.NET.Tests
     [TestClass]
     public class DataLinkTests
     {
-        private DataLink              _serialTest;
+        private DataLink                 _serialTest;
         private MockCommunicationChannel _mockComm;
 
         [TestInitialize]
         public void MartaSerialTestInitialize()
         {
-            var factory = new PacketFactory();
+            var factory = new PacketFormatter();
             _mockComm = new MockCommunicationChannel(factory);
 
             _serialTest = new DataLink(factory, _mockComm);

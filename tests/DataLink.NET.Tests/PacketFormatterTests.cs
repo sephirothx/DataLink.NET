@@ -4,14 +4,14 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 namespace DataLink.NET.Tests
 {
     [TestClass]
-    public class PacketFactoryTests
+    public class PacketFormatterTests
     {
-        private PacketFactory _factory;
+        private PacketFormatter _formatter;
 
         [TestInitialize]
-        public void MartaPacketFactoryTestInitialize()
+        public void PacketFormatterTestInitialize()
         {
-            _factory = new PacketFactory();
+            _formatter = new PacketFormatter();
         }
 
         [TestMethod]
@@ -25,7 +25,7 @@ namespace DataLink.NET.Tests
                 0x10, 0x03                    // DLE-ETX - end
             };
 
-            var packet = _factory.EncodePacket(payload);
+            var packet = _formatter.EncodePacket(payload);
             Assert.IsTrue(expected.SequenceEqual(packet));
         }
 
@@ -40,7 +40,7 @@ namespace DataLink.NET.Tests
             };
             var expected = new byte[] { 0x00, 0x10, 0x20, 0x69 };
 
-            var payload = _factory.DecodePacket(packet);
+            var payload = _formatter.DecodePacket(packet);
             Assert.IsTrue(expected.SequenceEqual(payload));
         }
 
@@ -60,7 +60,7 @@ namespace DataLink.NET.Tests
             byte[] payload = null;
             foreach (byte b in packet)
             {
-                payload = _factory.ProcessNextByte(b);
+                payload = _formatter.ProcessNextByte(b);
                 if (payload != null) break;
             }
 

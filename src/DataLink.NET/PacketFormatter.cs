@@ -5,7 +5,7 @@ using DataLink.NET.Interfaces;
 
 namespace DataLink.NET
 {
-    class PacketFactory : IPacketFactory
+    class PacketFormatter : IPacketFormatter
     {
         private const byte DLE = 0x10;
         private const byte STX = 0x02;
@@ -16,7 +16,7 @@ namespace DataLink.NET
         private readonly string _dledle = Encoding.ASCII.GetString(new[] { DLE, DLE });
         private readonly string _dle    = Encoding.ASCII.GetString(new[] { DLE });
 
-        private readonly PacketFactoryFsm _state = new();
+        private readonly PacketFormatterFsm _state = new();
 
         private DateTime _start;
 
@@ -50,18 +50,18 @@ namespace DataLink.NET
             Console.Write((char)nextByte);
             switch (_state.CurrentState)
             {
-            case PacketFactoryFsm.State.WaitingForDle:
+            case PacketFormatterFsm.State.WaitingForDle:
                 if (nextByte == DLE)
                 {
                     _start              = DateTime.Now;
-                    _state.CurrentState = PacketFactoryFsm.State.WaitingForStx;
+                    _state.CurrentState = PacketFormatterFsm.State.WaitingForStx;
                 }
                 break;
 
-            case PacketFactoryFsm.State.WaitingForStx:
+            case PacketFormatterFsm.State.WaitingForStx:
                 if (nextByte == STX)
                 {
-                    _state.CurrentState = PacketFactoryFsm.State.WaitingForPayload;
+                    _state.CurrentState = PacketFormatterFsm.State.WaitingForPayload;
                 }
                 else
                 {
@@ -69,10 +69,10 @@ namespace DataLink.NET
                 }
                 break;
 
-            case PacketFactoryFsm.State.WaitingForPayload:
+            case PacketFormatterFsm.State.WaitingForPayload:
                 if (nextByte == DLE)
                 {
-                    _state.CurrentState = PacketFactoryFsm.State.WaitingForDleOrEtx;
+                    _state.CurrentState = PacketFormatterFsm.State.WaitingForDleOrEtx;
                 }
                 else
                 {
@@ -80,15 +80,15 @@ namespace DataLink.NET
                 }
                 break;
 
-            case PacketFactoryFsm.State.WaitingForDleOrEtx:
+            case PacketFormatterFsm.State.WaitingForDleOrEtx:
                 if (nextByte == DLE)
                 {
                     _state.Buffer.Add(nextByte);
-                    _state.CurrentState = PacketFactoryFsm.State.WaitingForPayload;
+                    _state.CurrentState = PacketFormatterFsm.State.WaitingForPayload;
                 }
                 else if (nextByte == ETX)
                 {
-                    _state.CurrentState = PacketFactoryFsm.State.WaitingForDle;
+                    _state.CurrentState = PacketFormatterFsm.State.WaitingForDle;
                     var packet = _state.Buffer.ToArray();
                     _state.Reset();
 

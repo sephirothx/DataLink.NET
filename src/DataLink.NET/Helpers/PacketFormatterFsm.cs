@@ -2,7 +2,7 @@
 
 namespace DataLink.NET.Helpers
 {
-    class PacketFactoryFsm
+    class PacketFormatterFsm
     {
         public enum State
         {

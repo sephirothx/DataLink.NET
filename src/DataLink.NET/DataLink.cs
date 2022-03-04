@@ -5,22 +5,22 @@ namespace DataLink.NET
 {
     public class DataLink
     {
-        private readonly IPacketFactory        _packetFactory;
+        private readonly IPacketFormatter        _packetFormatter;
         private readonly ICommunicationChannel _communicationChannel;
 
         public event EventHandler<byte[]> PacketReceived;
         private void NotifyPacketReceived(byte[] packet) => PacketReceived?.Invoke(this, packet);
 
         public DataLink()
-            : this(new PacketFactory(), new SerialPortProxy())
+            : this(new PacketFormatter(), new SerialPortProxy())
         {
 
         }
 
-        public DataLink(IPacketFactory packetFactory,
+        public DataLink(IPacketFormatter packetFormatter,
                         ICommunicationChannel communicationChannel)
         {
-            _packetFactory        = packetFactory;
+            _packetFormatter        = packetFormatter;
             _communicationChannel = communicationChannel;
 
             _communicationChannel.DataReceived += OnDataReceived;
@@ -38,7 +38,7 @@ namespace DataLink.NET
 
         public void Send(byte[] payload)
         {
-            var packet = _packetFactory.EncodePacket(payload);
+            var packet = _packetFormatter.EncodePacket(payload);
             _communicationChannel.Send(packet);
         }
 
@@ -52,7 +52,7 @@ namespace DataLink.NET
             while (_communicationChannel.BytesToRead > 0)
             {
                 var nextReceived = _communicationChannel.ReceiveByte();
-                var packet       = _packetFactory.ProcessNextByte(nextReceived);
+                var packet       = _packetFormatter.ProcessNextByte(nextReceived);
 
                 if (packet != null)
                 {

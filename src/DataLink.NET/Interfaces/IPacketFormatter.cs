@@ -1,6 +1,6 @@
 ﻿namespace DataLink.NET.Interfaces
 {
-    public interface IPacketFactory
+    public interface IPacketFormatter
     {
         byte[] EncodePacket(byte[] payload);
         byte[] DecodePacket(byte[] packet);

@@ -5,7 +5,7 @@ namespace DataLink.NET.Tests.Mock
 {
     class MockCommunicationChannel : ICommunicationChannel
     {
-        private readonly PacketFactory _packetFactory;
+        private readonly PacketFormatter _packetFormatter;
 
         private byte[] _toSend;
 
@@ -15,9 +15,9 @@ namespace DataLink.NET.Tests.Mock
 
         public int BytesToRead { get; private set; }
 
-        public MockCommunicationChannel(PacketFactory packetFactory)
+        public MockCommunicationChannel(PacketFormatter packetFormatter)
         {
-            _packetFactory = packetFactory;
+            _packetFormatter = packetFormatter;
         }
 
         public string[] GetDeviceNames()
@@ -32,8 +32,8 @@ namespace DataLink.NET.Tests.Mock
 
         public void Send(byte[] buffer)
         {
-            var received = _packetFactory.DecodePacket(buffer);
-            _toSend = _packetFactory.EncodePacket(received);
+            var received = _packetFormatter.DecodePacket(buffer);
+            _toSend = _packetFormatter.EncodePacket(received);
 
             BytesToRead = _toSend.Length;
             DataReceived?.Invoke(this, EventArgs.Empty);
