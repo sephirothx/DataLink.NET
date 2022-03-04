@@ -1,0 +1,25 @@
+﻿using System.Collections.Generic;
+
+namespace DataLink.NET.Helpers
+{
+    class PacketFactoryFsm
+    {
+        public enum State
+        {
+            WaitingForDle,
+            WaitingForStx,
+            WaitingForPayload,
+            WaitingForDleOrEtx
+        }
+
+        public List<byte> Buffer { get; set; } = new();
+
+        public State CurrentState { get; set; } = State.WaitingForDle;
+
+        public void Reset()
+        {
+            Buffer       = new List<byte>();
+            CurrentState = State.WaitingForDle;
+        }
+    }
+}
