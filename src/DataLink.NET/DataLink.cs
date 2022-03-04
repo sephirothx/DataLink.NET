@@ -5,7 +5,7 @@ namespace DataLink.NET
 {
     public class DataLink
     {
-        private readonly IPacketFormatter        _packetFormatter;
+        private readonly IPacketFormatter      _packetFormatter;
         private readonly ICommunicationChannel _communicationChannel;
 
         public event EventHandler<byte[]> PacketReceived;
@@ -13,9 +13,15 @@ namespace DataLink.NET
 
         public DataLink()
             : this(new PacketFormatter(), new SerialPortProxy())
-        {
+        {}
 
-        }
+        public DataLink(IPacketFormatter packetFormatter)
+            : this(packetFormatter, new SerialPortProxy())
+        {}
+
+        public DataLink(ICommunicationChannel communicationChannel)
+            : this(new PacketFormatter(), communicationChannel)
+        {}
 
         public DataLink(IPacketFormatter packetFormatter,
                         ICommunicationChannel communicationChannel)
