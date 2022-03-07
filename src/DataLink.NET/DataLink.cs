@@ -15,6 +15,10 @@ namespace DataLink.NET
             : this(new PacketFormatter(), new SerialPortProxy())
         {}
 
+        public DataLink(SerialPortOptions options)
+            : this(new PacketFormatter(), new SerialPortProxy(options))
+        {}
+
         public DataLink(IPacketFormatter packetFormatter)
             : this(packetFormatter, new SerialPortProxy())
         {}
@@ -26,7 +30,7 @@ namespace DataLink.NET
         public DataLink(IPacketFormatter packetFormatter,
                         ICommunicationChannel communicationChannel)
         {
-            _packetFormatter        = packetFormatter;
+            _packetFormatter      = packetFormatter;
             _communicationChannel = communicationChannel;
 
             _communicationChannel.DataReceived += OnDataReceived;

@@ -6,11 +6,27 @@ namespace DataLink.NET
 {
     class SerialPortProxy : ICommunicationChannel
     {
-        private SerialPort _serialPort;
+        private readonly SerialPort _serialPort;
 
         public event EventHandler DataReceived;
 
         public int BytesToRead => _serialPort.BytesToRead;
+
+        public SerialPortProxy()
+            : this(new SerialPortOptions())
+        {}
+
+        public SerialPortProxy(SerialPortOptions options)
+        {
+            _serialPort = new SerialPort();
+
+            _serialPort.BaudRate = options.BaudRate;
+            _serialPort.Parity   = options.Parity;
+            _serialPort.DataBits = options.DataBits;
+            _serialPort.StopBits = options.StopBits;
+
+            _serialPort.DataReceived += OnDataReceived;
+        }
 
         public string[] GetDeviceNames()
         {
@@ -19,12 +35,13 @@ namespace DataLink.NET
 
         public void SelectDevice(string device)
         {
-            _serialPort?.Dispose();
+            if (_serialPort.IsOpen)
+            {
+                _serialPort.Close();
+            }
 
-            _serialPort = new SerialPort(device, 9600);
+            _serialPort.PortName = device;
             _serialPort.Open();
-
-            _serialPort.DataReceived += OnDataReceived;
         }
 
         private void OnDataReceived(object sender, SerialDataReceivedEventArgs e)
