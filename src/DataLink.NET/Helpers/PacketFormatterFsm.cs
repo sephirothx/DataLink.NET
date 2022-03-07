@@ -12,13 +12,13 @@ namespace DataLink.NET.Helpers
             WaitingForDleOrEtx
         }
 
-        public List<byte> Buffer { get; set; } = new();
+        public List<byte> Buffer { get; } = new();
 
         public State CurrentState { get; set; } = State.WaitingForDle;
 
         public void Reset()
         {
-            Buffer       = new List<byte>();
+            Buffer.Clear();
             CurrentState = State.WaitingForDle;
         }
 
