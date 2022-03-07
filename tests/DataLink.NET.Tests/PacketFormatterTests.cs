@@ -49,7 +49,7 @@ namespace DataLink.NET.Tests
         {
             var packet = new byte[]
             {
-                0x00, 0x03, 0x11,             // discard
+                0x10, 0x03, 0x11,             // discard
                 0x10, 0x02,                   // DLE-STX - start
                 0x00, 0x10, 0x10, 0x20, 0x69, // payload with escaped DLE
                 0x10, 0x03,                   // DLE-ETX - end

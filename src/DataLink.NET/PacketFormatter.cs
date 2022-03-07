@@ -18,8 +18,6 @@ namespace DataLink.NET
 
         private readonly PacketFormatterFsm _state = new();
 
-        private DateTime _start;
-
         public byte[] EncodePacket(byte[] payload)
         {
             string packet = Encoding.ASCII.GetString(payload);
@@ -47,60 +45,27 @@ namespace DataLink.NET
 
         public byte[] ProcessNextByte(byte nextByte)
         {
-            Console.Write((char)nextByte);
             switch (_state.CurrentState)
             {
-            case PacketFormatterFsm.State.WaitingForDle:
-                if (nextByte == DLE)
-                {
-                    _start              = DateTime.Now;
-                    _state.CurrentState = PacketFormatterFsm.State.WaitingForStx;
-                }
-                break;
-
-            case PacketFormatterFsm.State.WaitingForStx:
-                if (nextByte == STX)
-                {
-                    _state.CurrentState = PacketFormatterFsm.State.WaitingForPayload;
-                }
-                else
-                {
-                    _state.Reset();
-                }
+            case PacketFormatterFsm.State.WaitingForDle when nextByte == DLE:
+            case PacketFormatterFsm.State.WaitingForStx when nextByte == STX:
+            case PacketFormatterFsm.State.WaitingForPayload when nextByte == DLE:
+                _state.CurrentState = _state.NextState();
                 break;
 
             case PacketFormatterFsm.State.WaitingForPayload:
-                if (nextByte == DLE)
-                {
-                    _state.CurrentState = PacketFormatterFsm.State.WaitingForDleOrEtx;
-                }
-                else
-                {
-                    _state.Buffer.Add(nextByte);
-                }
+                _state.Buffer.Add(nextByte);
                 break;
 
-            case PacketFormatterFsm.State.WaitingForDleOrEtx:
-                if (nextByte == DLE)
-                {
-                    _state.Buffer.Add(nextByte);
-                    _state.CurrentState = PacketFormatterFsm.State.WaitingForPayload;
-                }
-                else if (nextByte == ETX)
-                {
-                    _state.CurrentState = PacketFormatterFsm.State.WaitingForDle;
-                    var packet = _state.Buffer.ToArray();
-                    _state.Reset();
-
-                    Console.WriteLine(DateTime.Now - _start);
-
-                    return packet;
-                }
-                else
-                {
-                    _state.Reset();
-                }
+            case PacketFormatterFsm.State.WaitingForDleOrEtx when nextByte == DLE:
+                _state.Buffer.Add(nextByte);
+                _state.CurrentState = _state.NextState();
                 break;
+
+            case PacketFormatterFsm.State.WaitingForDleOrEtx when nextByte == ETX:
+                var packet = _state.Buffer.ToArray();
+                _state.Reset();
+                return packet;
 
             default:
                 _state.Reset();

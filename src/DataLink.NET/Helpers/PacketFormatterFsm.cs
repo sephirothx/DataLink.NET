@@ -21,5 +21,11 @@ namespace DataLink.NET.Helpers
             Buffer       = new List<byte>();
             CurrentState = State.WaitingForDle;
         }
+
+        public State NextState() => CurrentState switch
+        {
+            State.WaitingForDleOrEtx => State.WaitingForPayload,
+            _                        => CurrentState + 1
+        };
     }
 }
