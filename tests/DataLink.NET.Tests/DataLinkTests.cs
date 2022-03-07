@@ -1,5 +1,4 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
 using DataLink.NET.Tests.Mock;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -49,12 +48,6 @@ namespace DataLink.NET.Tests
             _serialTest.Send(payload);
 
             Assert.IsTrue(payload.SequenceEqual(received));
-        }
-
-        [TestMethod]
-        public void ReceiveByteTest()
-        {
-            Assert.ThrowsException<InvalidOperationException>(() => _serialTest.ReceiveByte());
         }
     }
 }

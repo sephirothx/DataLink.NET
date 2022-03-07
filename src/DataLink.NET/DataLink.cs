@@ -52,11 +52,6 @@ namespace DataLink.NET
             _communicationChannel.Send(packet);
         }
 
-        public byte ReceiveByte()
-        {
-            return _communicationChannel.ReceiveByte();
-        }
-
         private void OnDataReceived(object sender, EventArgs e)
         {
             while (_communicationChannel.BytesToRead > 0)
