@@ -11,25 +11,25 @@ namespace DataLink.NET
         private const byte STX = 0x02;
         private const byte ETX = 0x03;
 
-        private readonly string _prefix = Encoding.ASCII.GetString(new[] { DLE, STX });
-        private readonly string _suffix = Encoding.ASCII.GetString(new[] { DLE, ETX });
-        private readonly string _dledle = Encoding.ASCII.GetString(new[] { DLE, DLE });
-        private readonly string _dle    = Encoding.ASCII.GetString(new[] { DLE });
+        private readonly string _prefix = Encoding.Latin1.GetString(new[] { DLE, STX });
+        private readonly string _suffix = Encoding.Latin1.GetString(new[] { DLE, ETX });
+        private readonly string _dledle = Encoding.Latin1.GetString(new[] { DLE, DLE });
+        private readonly string _dle    = Encoding.Latin1.GetString(new[] { DLE });
 
         private readonly PacketFormatterFsm _state = new();
 
         public byte[] EncodePacket(byte[] payload)
         {
-            string packet = Encoding.ASCII.GetString(payload);
+            string packet = Encoding.Latin1.GetString(payload);
             packet = packet.Replace(_dle, _dledle);
             packet = $"{_prefix}{packet}{_suffix}";
 
-            return Encoding.ASCII.GetBytes(packet);
+            return Encoding.Latin1.GetBytes(packet);
         }
 
         public byte[] DecodePacket(byte[] packet)
         {
-            string strPacket = Encoding.ASCII.GetString(packet);
+            string strPacket = Encoding.Latin1.GetString(packet);
 
             if (!strPacket.StartsWith(_prefix) ||
                 !strPacket.EndsWith(_suffix))
@@ -40,7 +40,7 @@ namespace DataLink.NET
             strPacket = strPacket.Remove(strPacket.Length - 2, 2)
                                  .Remove(0, 2)
                                  .Replace(_dledle, _dle);
-            return Encoding.ASCII.GetBytes(strPacket);
+            return Encoding.Latin1.GetBytes(strPacket);
         }
 
         public byte[] ProcessNextByte(byte nextByte)
