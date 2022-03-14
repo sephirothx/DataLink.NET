@@ -17,12 +17,12 @@ namespace DataLink.NET.Tests
         [TestMethod]
         public void EncodePacketTest()
         {
-            var payload  = new byte[] { 0x00, 0x10, 0x20, 0x69 };
+            var payload = new byte[] { 0x00, 0x10, 0x69, 0xFF, 0xD0 };
             var expected = new byte[]
             {
-                0x10, 0x02,                   // DLE-STX - start
-                0x00, 0x10, 0x10, 0x20, 0x69, // payload with escaped DLE
-                0x10, 0x03                    // DLE-ETX - end
+                0x10, 0x02,                         // DLE-STX - start
+                0x00, 0x10, 0x10, 0x69, 0xFF, 0xD0, // payload with escaped DLE
+                0x10, 0x03                          // DLE-ETX - end
             };
 
             var packet = _formatter.EncodePacket(payload);
@@ -34,11 +34,11 @@ namespace DataLink.NET.Tests
         {
             var packet = new byte[]
             {
-                0x10, 0x02,                   // DLE-STX - start
-                0x00, 0x10, 0x10, 0x20, 0x69, // payload with escaped DLE
-                0x10, 0x03                    // DLE-ETX - end
+                0x10, 0x02,                         // DLE-STX - start
+                0x00, 0x10, 0x10, 0x69, 0xFF, 0xD0, // payload with escaped DLE
+                0x10, 0x03                          // DLE-ETX - end
             };
-            var expected = new byte[] { 0x00, 0x10, 0x20, 0x69 };
+            var expected = new byte[] { 0x00, 0x10, 0x69, 0xFF, 0xD0 };
 
             var payload = _formatter.DecodePacket(packet);
             Assert.IsTrue(expected.SequenceEqual(payload));
@@ -49,13 +49,13 @@ namespace DataLink.NET.Tests
         {
             var packet = new byte[]
             {
-                0x10, 0x03, 0x11,             // discard
-                0x10, 0x02,                   // DLE-STX - start
-                0x00, 0x10, 0x10, 0x20, 0x69, // payload with escaped DLE
-                0x10, 0x03,                   // DLE-ETX - end
-                0x10, 0x02                    // DLE-STX - start of a new packet
+                0x10, 0x03, 0x11,                   // discard
+                0x10, 0x02,                         // DLE-STX - start
+                0x00, 0x10, 0x10, 0x69, 0xFF, 0xD0, // payload with escaped DLE
+                0x10, 0x03,                         // DLE-ETX - end
+                0x10, 0x02                          // DLE-STX - start of a new packet
             };
-            var expected = new byte[] { 0x00, 0x10, 0x20, 0x69 };
+            var expected = new byte[] { 0x00, 0x10, 0x69, 0xFF, 0xD0 };
 
             byte[] payload = null;
             foreach (byte b in packet)

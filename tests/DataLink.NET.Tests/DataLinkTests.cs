@@ -44,7 +44,7 @@ namespace DataLink.NET.Tests
             byte[] received = null;
             _serialTest.PacketReceived += (_, bytes) => received = bytes;
 
-            var payload = new byte[] { 0x00, 0x10, 0x02, 0x10, 0x03 };
+            var payload = new byte[] { 0x00, 0x10, 0x02, 0xFF, 0xD0, 0x10, 0x03 };
             _serialTest.Send(payload);
 
             Assert.IsTrue(payload.SequenceEqual(received));
