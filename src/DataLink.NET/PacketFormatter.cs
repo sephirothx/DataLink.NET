@@ -150,6 +150,15 @@ namespace DataLink.NET
                     return packet;
                 }
 
+                if (nextByte == STX)
+                {
+                    // Recover from malformed in-packet framing by treating DLE-STX
+                    // as the start of a new packet.
+                    _state.Buffer.Clear();
+                    _state.CurrentState = PacketFormatterFsm.State.WaitingForPayload;
+                    return null;
+                }
+
                 _state.Reset();
                 return null;
             }

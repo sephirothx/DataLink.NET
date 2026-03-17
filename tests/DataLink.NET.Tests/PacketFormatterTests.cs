@@ -122,6 +122,41 @@ namespace DataLink.NET.Tests
         }
 
         [TestMethod]
+        public void ProcessBytesResynchronizesOnNewStartMarkerInsideMalformedPacket()
+        {
+            var stream = new byte[]
+            {
+                0x10, 0x02,
+                0xDE, 0xAD,
+                0x10, 0x02,
+                0x13, 0x37,
+                0x10, 0x03
+            };
+            var packets = new List<byte[]>();
+
+            _formatter.ProcessBytes(stream, packet => packets.Add(packet));
+            Assert.AreEqual(1, packets.Count);
+            CollectionAssert.AreEqual(new byte[] { 0x13, 0x37 }, packets[0]);
+        }
+
+        [TestMethod]
+        public void ProcessBytesInterpretsAmbiguousSequence()
+        {
+            var stream = new byte[]
+            {
+                0x10, 0x02,
+                0x10, 0x10, 0x02,
+                0x10, 0x10, 0x03,
+                0x10, 0x03
+            };
+            var packets = new List<byte[]>();
+
+            _formatter.ProcessBytes(stream, packet => packets.Add(packet));
+            Assert.AreEqual(1, packets.Count);
+            CollectionAssert.AreEqual(new byte[] { 0x10, 0x02, 0x10, 0x03, }, packets[0]);
+        }
+
+        [TestMethod]
         public void ProcessBytesWithNullCallbackThrows()
         {
             Assert.ThrowsExactly<ArgumentNullException>(() => _formatter.ProcessBytes(new byte[] { 0x10 }, null));
