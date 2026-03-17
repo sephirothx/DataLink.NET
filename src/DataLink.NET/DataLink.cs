@@ -162,11 +162,7 @@ namespace DataLink.NET
                     }
 
                     var readSpan = new ReadOnlySpan<byte>(chunk, 0, actualRead);
-                    var packets = _packetFormatter.ProcessBytes(readSpan);
-                    foreach (byte[] packet in packets)
-                    {
-                        NotifyPacketReceived(packet);
-                    }
+                    _packetFormatter.ProcessBytes(readSpan, NotifyPacketReceived);
                 }
             }
         }

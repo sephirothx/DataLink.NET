@@ -90,23 +90,30 @@ namespace DataLink.NET
 
         public IReadOnlyList<byte[]> ProcessBytes(ReadOnlySpan<byte> bytes)
         {
+            List<byte[]> packets = null;
+            ProcessBytes(bytes, packet =>
+            {
+                packets ??= new List<byte[]>();
+                packets.Add(packet);
+            });
+
+            return packets ?? (IReadOnlyList<byte[]>)Array.Empty<byte[]>();
+        }
+
+        public void ProcessBytes(ReadOnlySpan<byte> bytes, Action<byte[]> onPacket)
+        {
+            ArgumentNullException.ThrowIfNull(onPacket);
+
             lock (_syncRoot)
             {
-                List<byte[]> packets = null;
-
                 foreach (byte nextByte in bytes)
                 {
                     byte[] packet = ProcessNextByteCore(nextByte);
-                    if (packet == null)
+                    if (packet != null)
                     {
-                        continue;
+                        onPacket(packet);
                     }
-
-                    packets ??= new List<byte[]>();
-                    packets.Add(packet);
                 }
-
-                return packets ?? (IReadOnlyList<byte[]>)Array.Empty<byte[]>();
             }
         }
 

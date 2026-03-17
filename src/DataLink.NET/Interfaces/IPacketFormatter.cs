@@ -9,5 +9,6 @@ namespace DataLink.NET.Interfaces
         byte[] DecodePacket(byte[] packet);
         byte[] ProcessNextByte(byte nextByte);
         IReadOnlyList<byte[]> ProcessBytes(ReadOnlySpan<byte> bytes);
+        void ProcessBytes(ReadOnlySpan<byte> bytes, Action<byte[]> onPacket);
     }
 }

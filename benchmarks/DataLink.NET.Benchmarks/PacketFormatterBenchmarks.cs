@@ -50,6 +50,22 @@ public class PacketFormatterBenchmarks
         return packets;
     }
 
+    [Benchmark]
+    public int ParseByChunksCallback()
+    {
+        var formatter = new PacketFormatter();
+        int packets = 0;
+
+        for (int offset = 0; offset < _stream.Length; offset += ChunkSize)
+        {
+            int length = Math.Min(ChunkSize, _stream.Length - offset);
+            var span = new ReadOnlySpan<byte>(_stream, offset, length);
+            formatter.ProcessBytes(span, _ => packets++);
+        }
+
+        return packets;
+    }
+
     private static byte[] BuildStream(int packetCount, int payloadSize, int seed)
     {
         var formatter = new PacketFormatter();

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -139,6 +140,34 @@ namespace DataLink.NET.Tests
             Assert.AreEqual(0, firstPackets.Count);
             Assert.AreEqual(1, secondPackets.Count);
             CollectionAssert.AreEqual(new byte[] { 0xAA, 0x10, 0xBB }, secondPackets[0]);
+        }
+
+        [TestMethod]
+        public void ProcessBytesCallbackReturnsAllCompletedPackets()
+        {
+            var stream = new byte[]
+            {
+                0x55, 0x10, 0x03,
+                0x10, 0x02,
+                0x41, 0x42,
+                0x10, 0x03,
+                0x10, 0x02,
+                0x10, 0x10, 0x99,
+                0x10, 0x03
+            };
+            var packets = new List<byte[]>();
+
+            _formatter.ProcessBytes(stream, packet => packets.Add(packet));
+
+            Assert.AreEqual(2, packets.Count);
+            CollectionAssert.AreEqual(new byte[] { 0x41, 0x42 }, packets[0]);
+            CollectionAssert.AreEqual(new byte[] { 0x10, 0x99 }, packets[1]);
+        }
+
+        [TestMethod]
+        public void ProcessBytesWithNullCallbackThrows()
+        {
+            Assert.ThrowsExactly<ArgumentNullException>(() => _formatter.ProcessBytes(new byte[] { 0x10 }, null));
         }
     }
 }
