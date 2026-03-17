@@ -108,16 +108,16 @@ namespace DataLink.NET
                 break;
 
             case PacketFormatterFsm.State.WaitingForPayload:
-                _state.Buffer.Add(nextByte);
+                _state.AppendByte(nextByte);
                 break;
 
             case PacketFormatterFsm.State.WaitingForDleOrEtx when nextByte == DLE:
-                _state.Buffer.Add(nextByte);
+                _state.AppendByte(nextByte);
                 _state.CurrentState = _state.NextState();
                 break;
 
             case PacketFormatterFsm.State.WaitingForDleOrEtx when nextByte == ETX:
-                var packet = _state.Buffer.ToArray();
+                var packet = _state.Buffer.WrittenSpan.ToArray();
                 _state.Reset();
                 return packet;
 

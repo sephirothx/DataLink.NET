@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Buffers;
 
 namespace DataLink.NET.Helpers
 {
@@ -12,7 +13,7 @@ namespace DataLink.NET.Helpers
             WaitingForDleOrEtx
         }
 
-        public List<byte> Buffer { get; } = new();
+        public ArrayBufferWriter<byte> Buffer { get; } = new();
 
         public State CurrentState { get; set; } = State.WaitingForDle;
 
@@ -20,6 +21,13 @@ namespace DataLink.NET.Helpers
         {
             Buffer.Clear();
             CurrentState = State.WaitingForDle;
+        }
+
+        public void AppendByte(byte value)
+        {
+            Span<byte> destination = Buffer.GetSpan(1);
+            destination[0] = value;
+            Buffer.Advance(1);
         }
 
         public State NextState() => CurrentState switch
