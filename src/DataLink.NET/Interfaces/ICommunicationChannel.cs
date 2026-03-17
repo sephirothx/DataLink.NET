@@ -12,5 +12,6 @@ namespace DataLink.NET.Interfaces
         void SelectDevice(string device);
         void Send(byte[] buffer);
         byte ReceiveByte();
+        int Read(byte[] buffer, int offset, int count);
     }
 }

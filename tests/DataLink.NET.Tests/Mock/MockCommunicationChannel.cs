@@ -67,6 +67,19 @@ namespace DataLink.NET.Tests.Mock
             throw new InvalidOperationException();
         }
 
+        public int Read(byte[] buffer, int offset, int count)
+        {
+            ArgumentNullException.ThrowIfNull(buffer);
+            int bytesRead = Math.Min(count, BytesToRead);
+            if (bytesRead > 0)
+            {
+                int srcOffset = _toSend.Length - BytesToRead;
+                Buffer.BlockCopy(_toSend, srcOffset, buffer, offset, bytesRead);
+                BytesToRead -= bytesRead;
+            }
+            return bytesRead;
+        }
+
         public void Dispose()
         {
             IsDisposed = true;

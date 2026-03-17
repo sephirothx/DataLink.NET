@@ -69,6 +69,13 @@ namespace DataLink.NET
             return (byte)_serialPort.ReadByte();
         }
 
+        public int Read(byte[] buffer, int offset, int count)
+        {
+            ThrowIfDisposed();
+            ArgumentNullException.ThrowIfNull(buffer);
+            return _serialPort.Read(buffer, offset, count);
+        }
+
         public void Dispose()
         {
             if (_disposed)

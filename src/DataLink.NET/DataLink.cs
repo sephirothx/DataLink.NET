@@ -154,13 +154,15 @@ namespace DataLink.NET
                 {
                     int bytesToRead = _communicationChannel.BytesToRead;
                     var chunk = new byte[bytesToRead];
+                    int actualRead = _communicationChannel.Read(chunk, 0, bytesToRead);
 
-                    for (int index = 0; index < bytesToRead; index++)
+                    if (actualRead == 0)
                     {
-                        chunk[index] = _communicationChannel.ReceiveByte();
+                        break;
                     }
 
-                    var packets = _packetFormatter.ProcessBytes(chunk);
+                    var readSpan = new ReadOnlySpan<byte>(chunk, 0, actualRead);
+                    var packets = _packetFormatter.ProcessBytes(readSpan);
                     foreach (byte[] packet in packets)
                     {
                         NotifyPacketReceived(packet);
