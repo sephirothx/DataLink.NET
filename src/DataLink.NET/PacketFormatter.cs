@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Text;
+using System.Collections.Generic;
 using DataLink.NET.Helpers;
 using DataLink.NET.Interfaces;
 
@@ -11,39 +11,106 @@ namespace DataLink.NET
         private const byte STX = 0x02;
         private const byte ETX = 0x03;
 
-        private readonly string _prefix = Encoding.Latin1.GetString(new[] { DLE, STX });
-        private readonly string _suffix = Encoding.Latin1.GetString(new[] { DLE, ETX });
-        private readonly string _dledle = Encoding.Latin1.GetString(new[] { DLE, DLE });
-        private readonly string _dle    = Encoding.Latin1.GetString(new[] { DLE });
-
         private readonly PacketFormatterFsm _state = new();
+        private readonly object _syncRoot = new();
 
         public byte[] EncodePacket(byte[] payload)
         {
-            string packet = Encoding.Latin1.GetString(payload);
-            packet = packet.Replace(_dle, _dledle);
-            packet = $"{_prefix}{packet}{_suffix}";
+            ArgumentNullException.ThrowIfNull(payload);
 
-            return Encoding.Latin1.GetBytes(packet);
+            var packet = new List<byte>(payload.Length + 4);
+            packet.Add(DLE);
+            packet.Add(STX);
+
+            foreach (byte current in payload)
+            {
+                packet.Add(current);
+                if (current == DLE)
+                {
+                    packet.Add(DLE);
+                }
+            }
+
+            packet.Add(DLE);
+            packet.Add(ETX);
+
+            return packet.ToArray();
         }
 
         public byte[] DecodePacket(byte[] packet)
         {
-            string strPacket = Encoding.Latin1.GetString(packet);
+            ArgumentNullException.ThrowIfNull(packet);
 
-            if (!strPacket.StartsWith(_prefix) ||
-                !strPacket.EndsWith(_suffix))
+            if (packet.Length < 4 ||
+                packet[0] != DLE ||
+                packet[1] != STX ||
+                packet[^2] != DLE ||
+                packet[^1] != ETX)
             {
                 throw new FormatException("Bad packet framing");
             }
 
-            strPacket = strPacket.Remove(strPacket.Length - 2, 2)
-                                 .Remove(0, 2)
-                                 .Replace(_dledle, _dle);
-            return Encoding.Latin1.GetBytes(strPacket);
+            var payload = new List<byte>(packet.Length - 4);
+
+            for (int i = 2; i < packet.Length - 2; i++)
+            {
+                byte current = packet[i];
+                if (current != DLE)
+                {
+                    payload.Add(current);
+                    continue;
+                }
+
+                int nextIndex = i + 1;
+                if (nextIndex >= packet.Length - 2)
+                {
+                    throw new FormatException("Bad packet stuffing");
+                }
+
+                byte escaped = packet[nextIndex];
+                if (escaped != DLE)
+                {
+                    throw new FormatException("Bad packet stuffing");
+                }
+
+                payload.Add(DLE);
+                i = nextIndex;
+            }
+
+            return payload.ToArray();
         }
 
         public byte[] ProcessNextByte(byte nextByte)
+        {
+            lock (_syncRoot)
+            {
+                return ProcessNextByteCore(nextByte);
+            }
+        }
+
+        public IReadOnlyList<byte[]> ProcessBytes(ReadOnlySpan<byte> bytes)
+        {
+            lock (_syncRoot)
+            {
+                List<byte[]> packets = null;
+
+                foreach (byte nextByte in bytes)
+                {
+                    byte[] packet = ProcessNextByteCore(nextByte);
+                    if (packet == null)
+                    {
+                        continue;
+                    }
+
+                    packets ??= new List<byte[]>();
+                    packets.Add(packet);
+                }
+
+                return packets ?? (IReadOnlyList<byte[]>)Array.Empty<byte[]>();
+            }
+        }
+
+        private byte[] ProcessNextByteCore(byte nextByte)
         {
             switch (_state.CurrentState)
             {

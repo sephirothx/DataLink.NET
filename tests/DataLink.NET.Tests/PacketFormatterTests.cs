@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System;
+using System.Linq;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DataLink.NET.Tests
@@ -65,6 +66,79 @@ namespace DataLink.NET.Tests
             }
 
             Assert.IsTrue(expected.SequenceEqual(payload!));
+        }
+
+        [TestMethod]
+        public void EncodePacketWithNullPayloadThrows()
+        {
+            Assert.ThrowsExactly<ArgumentNullException>(() => _formatter.EncodePacket(null));
+        }
+
+        [TestMethod]
+        public void DecodePacketWithNullPacketThrows()
+        {
+            Assert.ThrowsExactly<ArgumentNullException>(() => _formatter.DecodePacket(null));
+        }
+
+        [TestMethod]
+        public void DecodePacketWithInvalidStuffingThrows()
+        {
+            var malformed = new byte[]
+            {
+                0x10, 0x02,
+                0x99, 0x10, 0x01,
+                0x10, 0x03
+            };
+
+            Assert.ThrowsExactly<FormatException>(() => _formatter.DecodePacket(malformed));
+        }
+
+        [TestMethod]
+        public void DecodePacketWithDanglingDleThrows()
+        {
+            var malformed = new byte[]
+            {
+                0x10, 0x02,
+                0x99, 0x10,
+                0x10, 0x03
+            };
+
+            Assert.ThrowsExactly<FormatException>(() => _formatter.DecodePacket(malformed));
+        }
+
+        [TestMethod]
+        public void ProcessBytesReturnsAllCompletedPackets()
+        {
+            var stream = new byte[]
+            {
+                0x55, 0x10, 0x03, // discarded noise
+                0x10, 0x02,
+                0x41, 0x42,
+                0x10, 0x03,
+                0x10, 0x02,
+                0x10, 0x10, 0x99,
+                0x10, 0x03
+            };
+
+            var packets = _formatter.ProcessBytes(stream);
+
+            Assert.AreEqual(2, packets.Count);
+            CollectionAssert.AreEqual(new byte[] { 0x41, 0x42 }, packets[0]);
+            CollectionAssert.AreEqual(new byte[] { 0x10, 0x99 }, packets[1]);
+        }
+
+        [TestMethod]
+        public void ProcessBytesKeepsStateAcrossChunks()
+        {
+            var firstChunk = new byte[] { 0x10, 0x02, 0xAA };
+            var secondChunk = new byte[] { 0x10, 0x10, 0xBB, 0x10, 0x03 };
+
+            var firstPackets = _formatter.ProcessBytes(firstChunk);
+            var secondPackets = _formatter.ProcessBytes(secondChunk);
+
+            Assert.AreEqual(0, firstPackets.Count);
+            Assert.AreEqual(1, secondPackets.Count);
+            CollectionAssert.AreEqual(new byte[] { 0xAA, 0x10, 0xBB }, secondPackets[0]);
         }
     }
 }
