@@ -6,16 +6,43 @@ namespace DataLink.NET
     /// <summary>
     /// Represents a customizable data link.
     /// </summary>
-    public class DataLink
+    public class DataLink : IDisposable
     {
         private readonly IPacketFormatter      _packetFormatter;
         private readonly ICommunicationChannel _communicationChannel;
+        private readonly object _receiveSync = new();
+        private bool _disposed;
 
         /// <summary>
         /// Occurs when a correctly formatted packet has been received.
         /// </summary>
         public event EventHandler<byte[]> PacketReceived;
-        private void NotifyPacketReceived(byte[] packet) => PacketReceived?.Invoke(this, packet);
+
+        /// <summary>
+        /// Occurs when a packet event subscriber throws an exception.
+        /// </summary>
+        public event EventHandler<Exception> PacketHandlerError;
+
+        private void NotifyPacketReceived(byte[] packet)
+        {
+            var handlers = PacketReceived;
+            if (handlers == null)
+            {
+                return;
+            }
+
+            foreach (EventHandler<byte[]> handler in handlers.GetInvocationList())
+            {
+                try
+                {
+                    handler(this, packet);
+                }
+                catch (Exception exception)
+                {
+                    PacketHandlerError?.Invoke(this, exception);
+                }
+            }
+        }
 
         /// <summary>
         /// Creates a new instance of <see cref="DataLink"/> with default
@@ -42,7 +69,7 @@ namespace DataLink.NET
         /// </summary>
         /// <param name="options"></param>
         public DataLink(SerialPortOptions options)
-            : this(new PacketFormatter(), new SerialPortProxy(options))
+            : this(new PacketFormatter(), CreateSerialPortProxy(options))
         {}
 
         /// <summary>
@@ -72,6 +99,9 @@ namespace DataLink.NET
         public DataLink(IPacketFormatter packetFormatter,
                         ICommunicationChannel communicationChannel)
         {
+            ArgumentNullException.ThrowIfNull(packetFormatter);
+            ArgumentNullException.ThrowIfNull(communicationChannel);
+
             _packetFormatter      = packetFormatter;
             _communicationChannel = communicationChannel;
 
@@ -83,6 +113,7 @@ namespace DataLink.NET
         /// </summary>
         public string[] GetDeviceNames()
         {
+            ThrowIfDisposed();
             return _communicationChannel.GetDeviceNames();
         }
 
@@ -92,6 +123,8 @@ namespace DataLink.NET
         /// <param name="device">The name of the selected interface.</param>
         public void SelectDevice(string device)
         {
+            ThrowIfDisposed();
+            ArgumentNullException.ThrowIfNull(device);
             _communicationChannel.SelectDevice(device);
         }
 
@@ -101,22 +134,68 @@ namespace DataLink.NET
         /// <param name="payload">The buffer containing the payload to send.</param>
         public void Send(byte[] payload)
         {
+            ThrowIfDisposed();
+            ArgumentNullException.ThrowIfNull(payload);
+
             var packet = _packetFormatter.EncodePacket(payload);
             _communicationChannel.Send(packet);
         }
 
         private void OnDataReceived(object sender, EventArgs e)
         {
-            while (_communicationChannel.BytesToRead > 0)
+            lock (_receiveSync)
             {
-                var nextReceived = _communicationChannel.ReceiveByte();
-                var packet       = _packetFormatter.ProcessNextByte(nextReceived);
-
-                if (packet != null)
+                if (_disposed)
                 {
-                    NotifyPacketReceived(packet);
+                    return;
+                }
+
+                while (_communicationChannel.BytesToRead > 0)
+                {
+                    int bytesToRead = _communicationChannel.BytesToRead;
+                    var chunk = new byte[bytesToRead];
+
+                    for (int index = 0; index < bytesToRead; index++)
+                    {
+                        chunk[index] = _communicationChannel.ReceiveByte();
+                    }
+
+                    var packets = _packetFormatter.ProcessBytes(chunk);
+                    foreach (byte[] packet in packets)
+                    {
+                        NotifyPacketReceived(packet);
+                    }
                 }
             }
+        }
+
+        public void Dispose()
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            _disposed = true;
+            _communicationChannel.DataReceived -= OnDataReceived;
+
+            if (_communicationChannel is IDisposable disposable)
+            {
+                disposable.Dispose();
+            }
+
+            GC.SuppressFinalize(this);
+        }
+
+        private void ThrowIfDisposed()
+        {
+            ObjectDisposedException.ThrowIf(_disposed, this);
+        }
+
+        private static SerialPortProxy CreateSerialPortProxy(SerialPortOptions options)
+        {
+            ArgumentNullException.ThrowIfNull(options);
+            return new SerialPortProxy(options);
         }
     }
 }

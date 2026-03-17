@@ -3,20 +3,38 @@ using DataLink.NET.Interfaces;
 
 namespace DataLink.NET.Tests.Mock
 {
-    class MockCommunicationChannel : ICommunicationChannel
+    class MockCommunicationChannel : ICommunicationChannel, IDisposable
     {
         private readonly PacketFormatter _packetFormatter;
 
         private byte[] _toSend;
+        private EventHandler _dataReceived;
 
         public string SelectedDevice { get; private set; }
 
-        public event EventHandler DataReceived;
+        public bool IsDisposed { get; private set; }
+
+        public int DataReceivedSubscribers { get; private set; }
+
+        public event EventHandler DataReceived
+        {
+            add
+            {
+                _dataReceived += value;
+                DataReceivedSubscribers++;
+            }
+            remove
+            {
+                _dataReceived -= value;
+                DataReceivedSubscribers--;
+            }
+        }
 
         public int BytesToRead { get; private set; }
 
         public MockCommunicationChannel(PacketFormatter packetFormatter)
         {
+            ArgumentNullException.ThrowIfNull(packetFormatter);
             _packetFormatter = packetFormatter;
         }
 
@@ -36,7 +54,7 @@ namespace DataLink.NET.Tests.Mock
             _toSend = _packetFormatter.EncodePacket(received);
 
             BytesToRead = _toSend.Length;
-            DataReceived?.Invoke(this, EventArgs.Empty);
+            _dataReceived?.Invoke(this, EventArgs.Empty);
         }
 
         public byte ReceiveByte()
@@ -47,6 +65,11 @@ namespace DataLink.NET.Tests.Mock
             }
 
             throw new InvalidOperationException();
+        }
+
+        public void Dispose()
+        {
+            IsDisposed = true;
         }
     }
 }
