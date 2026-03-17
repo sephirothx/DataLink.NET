@@ -7,14 +7,19 @@ namespace DataLink.NET.Benchmarks;
 [MemoryDiagnoser]
 public class PacketFormatterBenchmarks
 {
-    private readonly byte[] _stream;
+    private byte[] _stream = Array.Empty<byte>();
+    private static readonly int[] PayloadSizes = { 16, 32, 64, 128 };
 
     [Params(16, 64, 256)]
     public int ChunkSize { get; set; }
 
-    public PacketFormatterBenchmarks()
+    [Params(0, 10)]
+    public int NoiseBurstEvery { get; set; }
+
+    [GlobalSetup]
+    public void Setup()
     {
-        _stream = BuildStream(packetCount: 200, payloadSize: 64, seed: 42);
+        _stream = BuildStream(packetCount: 200, seed: 42, noiseBurstEvery: NoiseBurstEvery);
     }
 
     [Benchmark]
@@ -33,7 +38,7 @@ public class PacketFormatterBenchmarks
         return packets;
     }
 
-    private static byte[] BuildStream(int packetCount, int payloadSize, int seed)
+    private static byte[] BuildStream(int packetCount, int seed, int noiseBurstEvery)
     {
         var formatter = new PacketFormatter();
         var random = new Random(seed);
@@ -45,6 +50,19 @@ public class PacketFormatterBenchmarks
 
         for (int i = 0; i < packetCount; i++)
         {
+            if (noiseBurstEvery > 0 && i > 0 && i % noiseBurstEvery == 0)
+            {
+                // Add both random bytes and malformed framing to stress parser recovery.
+                stream.Add((byte)random.Next(0, 256));
+                stream.Add((byte)random.Next(0, 256));
+                stream.Add(0x10);
+                stream.Add(0x02);
+                stream.Add(0x77);
+                stream.Add(0x10);
+                stream.Add(0x04);
+            }
+
+            int payloadSize = PayloadSizes[random.Next(PayloadSizes.Length)];
             byte[] payload = new byte[payloadSize];
             random.NextBytes(payload);
 
