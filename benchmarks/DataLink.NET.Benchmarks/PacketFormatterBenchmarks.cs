@@ -17,41 +17,8 @@ public class PacketFormatterBenchmarks
         _stream = BuildStream(packetCount: 200, payloadSize: 64, seed: 42);
     }
 
-    [Benchmark(Baseline = true)]
-    public int ParseByteByByte()
-    {
-        var formatter = new PacketFormatter();
-        int packets = 0;
-
-        foreach (byte b in _stream)
-        {
-            if (formatter.ProcessNextByte(b) != null)
-            {
-                packets++;
-            }
-        }
-
-        return packets;
-    }
-
     [Benchmark]
-    public int ParseByChunks()
-    {
-        var formatter = new PacketFormatter();
-        int packets = 0;
-
-        for (int offset = 0; offset < _stream.Length; offset += ChunkSize)
-        {
-            int length = Math.Min(ChunkSize, _stream.Length - offset);
-            var span = new ReadOnlySpan<byte>(_stream, offset, length);
-            packets += formatter.ProcessBytes(span).Count;
-        }
-
-        return packets;
-    }
-
-    [Benchmark]
-    public int ParseByChunksCallback()
+    public int Parse()
     {
         var formatter = new PacketFormatter();
         int packets = 0;

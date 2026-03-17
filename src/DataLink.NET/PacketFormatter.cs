@@ -80,26 +80,6 @@ namespace DataLink.NET
             return payload.ToArray();
         }
 
-        public byte[] ProcessNextByte(byte nextByte)
-        {
-            lock (_syncRoot)
-            {
-                return ProcessNextByteCore(nextByte);
-            }
-        }
-
-        public IReadOnlyList<byte[]> ProcessBytes(ReadOnlySpan<byte> bytes)
-        {
-            List<byte[]> packets = null;
-            ProcessBytes(bytes, packet =>
-            {
-                packets ??= new List<byte[]>();
-                packets.Add(packet);
-            });
-
-            return packets ?? (IReadOnlyList<byte[]>)Array.Empty<byte[]>();
-        }
-
         public void ProcessBytes(ReadOnlySpan<byte> bytes, Action<byte[]> onPacket)
         {
             ArgumentNullException.ThrowIfNull(onPacket);
