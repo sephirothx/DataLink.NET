@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers;
 using DataLink.NET.Interfaces;
 
 namespace DataLink.NET
@@ -153,16 +154,23 @@ namespace DataLink.NET
                 while (_communicationChannel.BytesToRead > 0)
                 {
                     int bytesToRead = _communicationChannel.BytesToRead;
-                    var chunk = new byte[bytesToRead];
-                    int actualRead = _communicationChannel.Read(chunk, 0, bytesToRead);
-
-                    if (actualRead == 0)
+                    byte[] chunk = ArrayPool<byte>.Shared.Rent(bytesToRead);
+                    try
                     {
-                        break;
-                    }
+                        int actualRead = _communicationChannel.Read(chunk, 0, bytesToRead);
 
-                    var readSpan = new ReadOnlySpan<byte>(chunk, 0, actualRead);
-                    _packetFormatter.ProcessBytes(readSpan, NotifyPacketReceived);
+                        if (actualRead == 0)
+                        {
+                            break;
+                        }
+
+                        var readSpan = new ReadOnlySpan<byte>(chunk, 0, actualRead);
+                        _packetFormatter.ProcessBytes(readSpan, NotifyPacketReceived);
+                    }
+                    finally
+                    {
+                        ArrayPool<byte>.Shared.Return(chunk);
+                    }
                 }
             }
         }
