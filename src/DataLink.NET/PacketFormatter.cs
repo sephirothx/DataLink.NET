@@ -86,18 +86,39 @@ namespace DataLink.NET
 
             lock (_syncRoot)
             {
-                foreach (byte nextByte in bytes)
+                int index = 0;
+                while (index < bytes.Length)
                 {
-                    byte[] packet = ProcessNextByteCore(nextByte);
+                    if (_state.CurrentState == PacketFormatterFsm.State.WaitingForPayload)
+                    {
+                        ReadOnlySpan<byte> remaining = bytes[index..];
+                        int dleIndex = remaining.IndexOf(DLE);
+
+                        if (dleIndex < 0)
+                        {
+                            _state.AppendBytes(remaining);
+                            break;
+                        }
+
+                        if (dleIndex > 0)
+                        {
+                            _state.AppendBytes(remaining[..dleIndex]);
+                            index += dleIndex;
+                        }
+                    }
+
+                    byte[] packet = ProcessNextByte(bytes[index]);
                     if (packet != null)
                     {
                         onPacket(packet);
                     }
+
+                    index++;
                 }
             }
         }
 
-        private byte[] ProcessNextByteCore(byte nextByte)
+        private byte[] ProcessNextByte(byte nextByte)
         {
             switch (_state.CurrentState)
             {

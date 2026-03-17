@@ -30,6 +30,18 @@ namespace DataLink.NET.Helpers
             Buffer.Advance(1);
         }
 
+        public void AppendBytes(ReadOnlySpan<byte> values)
+        {
+            if (values.Length == 0)
+            {
+                return;
+            }
+
+            Span<byte> destination = Buffer.GetSpan(values.Length);
+            values.CopyTo(destination);
+            Buffer.Advance(values.Length);
+        }
+
         public State NextState() => CurrentState switch
         {
             State.WaitingForDleOrEtx => State.WaitingForPayload,
