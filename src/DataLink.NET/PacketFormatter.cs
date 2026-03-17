@@ -120,33 +120,57 @@ namespace DataLink.NET
 
         private byte[] ProcessNextByte(byte nextByte)
         {
-            switch (_state.CurrentState)
+            PacketFormatterFsm.State currentState = _state.CurrentState;
+
+            if (currentState == PacketFormatterFsm.State.WaitingForPayload)
             {
-            case PacketFormatterFsm.State.WaitingForDle when nextByte == DLE:
-            case PacketFormatterFsm.State.WaitingForStx when nextByte == STX:
-            case PacketFormatterFsm.State.WaitingForPayload when nextByte == DLE:
-                _state.CurrentState = _state.NextState();
-                break;
+                if (nextByte == DLE)
+                {
+                    _state.CurrentState = PacketFormatterFsm.State.WaitingForDleOrEtx;
+                    return null;
+                }
 
-            case PacketFormatterFsm.State.WaitingForPayload:
                 _state.AppendByte(nextByte);
-                break;
-
-            case PacketFormatterFsm.State.WaitingForDleOrEtx when nextByte == DLE:
-                _state.AppendByte(nextByte);
-                _state.CurrentState = _state.NextState();
-                break;
-
-            case PacketFormatterFsm.State.WaitingForDleOrEtx when nextByte == ETX:
-                var packet = _state.Buffer.WrittenSpan.ToArray();
-                _state.Reset();
-                return packet;
-
-            default:
-                _state.Reset();
-                break;
+                return null;
             }
 
+            if (currentState == PacketFormatterFsm.State.WaitingForDleOrEtx)
+            {
+                if (nextByte == DLE)
+                {
+                    _state.AppendByte(nextByte);
+                    _state.CurrentState = PacketFormatterFsm.State.WaitingForPayload;
+                    return null;
+                }
+
+                if (nextByte == ETX)
+                {
+                    var packet = _state.Buffer.WrittenSpan.ToArray();
+                    _state.Reset();
+                    return packet;
+                }
+
+                _state.Reset();
+                return null;
+            }
+
+            if (currentState == PacketFormatterFsm.State.WaitingForDle)
+            {
+                if (nextByte == DLE)
+                {
+                    _state.CurrentState = PacketFormatterFsm.State.WaitingForStx;
+                }
+
+                return null;
+            }
+
+            if (currentState == PacketFormatterFsm.State.WaitingForStx && nextByte == STX)
+            {
+                _state.CurrentState = PacketFormatterFsm.State.WaitingForPayload;
+                return null;
+            }
+
+            _state.Reset();
             return null;
         }
     }
