@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using BenchmarkDotNet.Attributes;
+using DataLink.NET.Framing;
 
 namespace DataLink.NET.Benchmarks;
 

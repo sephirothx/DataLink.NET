@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Buffers;
 
-namespace DataLink.NET.Helpers
+namespace DataLink.NET.Framing
 {
     class PacketFormatterFsm
     {

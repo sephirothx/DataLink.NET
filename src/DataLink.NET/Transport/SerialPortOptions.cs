@@ -1,6 +1,6 @@
 ﻿using System.IO.Ports;
 
-namespace DataLink.NET
+namespace DataLink.NET.Transport
 {
     public class SerialPortOptions
     {

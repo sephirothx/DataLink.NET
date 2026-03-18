@@ -1,6 +1,8 @@
 ﻿using System;
-using System.Buffers;
+using DataLink.NET.Core;
+using DataLink.NET.Framing;
 using DataLink.NET.Interfaces;
+using DataLink.NET.Transport;
 
 namespace DataLink.NET
 {
@@ -11,7 +13,7 @@ namespace DataLink.NET
     {
         private readonly IPacketFormatter      _packetFormatter;
         private readonly ICommunicationChannel _communicationChannel;
-        private readonly object _receiveSync = new();
+        private readonly PacketPump _packetPump;
         private bool _disposed;
 
         /// <summary>
@@ -60,7 +62,7 @@ namespace DataLink.NET
         /// </code>
         /// </remarks>
         public DataLink()
-            : this(new PacketFormatter(), new SerialPortProxy())
+            : this(new PacketFormatter(), new SerialPortChannel())
         {}
 
         /// <summary>
@@ -70,7 +72,7 @@ namespace DataLink.NET
         /// </summary>
         /// <param name="options"></param>
         public DataLink(SerialPortOptions options)
-            : this(new PacketFormatter(), CreateSerialPortProxy(options))
+            : this(new PacketFormatter(), CreateSerialPortChannel(options))
         {}
 
         /// <summary>
@@ -79,7 +81,7 @@ namespace DataLink.NET
         /// </summary>
         /// <param name="packetFormatter"></param>
         public DataLink(IPacketFormatter packetFormatter)
-            : this(packetFormatter, new SerialPortProxy())
+            : this(packetFormatter, new SerialPortChannel())
         {}
 
         /// <summary>
@@ -105,8 +107,8 @@ namespace DataLink.NET
 
             _packetFormatter      = packetFormatter;
             _communicationChannel = communicationChannel;
-
-            _communicationChannel.DataReceived += OnDataReceived;
+            _packetPump = new PacketPump(_communicationChannel, _packetFormatter);
+            _packetPump.PacketReceived += NotifyPacketReceived;
         }
 
         /// <summary>
@@ -142,39 +144,6 @@ namespace DataLink.NET
             _communicationChannel.Send(packet);
         }
 
-        private void OnDataReceived(object sender, EventArgs e)
-        {
-            lock (_receiveSync)
-            {
-                if (_disposed)
-                {
-                    return;
-                }
-
-                while (_communicationChannel.BytesToRead > 0)
-                {
-                    int bytesToRead = _communicationChannel.BytesToRead;
-                    byte[] chunk = ArrayPool<byte>.Shared.Rent(bytesToRead);
-                    try
-                    {
-                        int actualRead = _communicationChannel.Read(chunk, 0, bytesToRead);
-
-                        if (actualRead == 0)
-                        {
-                            break;
-                        }
-
-                        var readSpan = new ReadOnlySpan<byte>(chunk, 0, actualRead);
-                        _packetFormatter.ProcessBytes(readSpan, NotifyPacketReceived);
-                    }
-                    finally
-                    {
-                        ArrayPool<byte>.Shared.Return(chunk);
-                    }
-                }
-            }
-        }
-
         public void Dispose()
         {
             if (_disposed)
@@ -183,7 +152,8 @@ namespace DataLink.NET
             }
 
             _disposed = true;
-            _communicationChannel.DataReceived -= OnDataReceived;
+            _packetPump.PacketReceived -= NotifyPacketReceived;
+            _packetPump.Dispose();
 
             if (_communicationChannel is IDisposable disposable)
             {
@@ -198,10 +168,10 @@ namespace DataLink.NET
             ObjectDisposedException.ThrowIf(_disposed, this);
         }
 
-        private static SerialPortProxy CreateSerialPortProxy(SerialPortOptions options)
+        private static SerialPortChannel CreateSerialPortChannel(SerialPortOptions options)
         {
             ArgumentNullException.ThrowIfNull(options);
-            return new SerialPortProxy(options);
+            return new SerialPortChannel(options);
         }
     }
 }

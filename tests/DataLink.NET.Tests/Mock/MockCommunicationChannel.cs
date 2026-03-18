@@ -1,4 +1,5 @@
 ﻿using System;
+using DataLink.NET.Framing;
 using DataLink.NET.Interfaces;
 
 namespace DataLink.NET.Tests.Mock

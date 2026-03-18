@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using DataLink.NET.Framing;
 using DataLink.NET.Tests.Mock;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -9,28 +10,28 @@ namespace DataLink.NET.Tests
     [TestClass]
     public class DataLinkTests
     {
-        private DataLink                 _serialTest;
-        private MockCommunicationChannel _mockComm;
+        private DataLink _dataLink;
+        private MockCommunicationChannel _mockChannel;
 
         [TestInitialize]
-        public void MartaSerialTestInitialize()
+        public void DataLinkTestInitialize()
         {
-            var factory = new PacketFormatter();
-            _mockComm = new MockCommunicationChannel(factory);
+            var packetFormatter = new PacketFormatter();
+            _mockChannel = new MockCommunicationChannel(packetFormatter);
 
-            _serialTest = new DataLink(factory, _mockComm);
+            _dataLink = new DataLink(packetFormatter, _mockChannel);
         }
 
         [TestCleanup]
         public void DataLinkTestCleanup()
         {
-            _serialTest?.Dispose();
+            _dataLink?.Dispose();
         }
 
         [TestMethod]
         public void GetDeviceNamesTest()
         {
-            var names = _serialTest.GetDeviceNames();
+            var names = _dataLink.GetDeviceNames();
 
             Assert.AreEqual("a", names[0]);
             Assert.AreEqual("b", names[1]);
@@ -41,19 +42,19 @@ namespace DataLink.NET.Tests
         public void SelectDeviceTest()
         {
             const string name = "z";
-            _serialTest.SelectDevice(name);
+            _dataLink.SelectDevice(name);
 
-            Assert.AreEqual(name, _mockComm.SelectedDevice);
+            Assert.AreEqual(name, _mockChannel.SelectedDevice);
         }
 
         [TestMethod]
         public void SendTest()
         {
             byte[] received = null;
-            _serialTest.PacketReceived += (_, bytes) => received = bytes;
+            _dataLink.PacketReceived += (_, bytes) => received = bytes;
 
             var payload = new byte[] { 0x00, 0x10, 0x02, 0xFF, 0xD0, 0x10, 0x03 };
-            _serialTest.Send(payload);
+            _dataLink.Send(payload);
 
             Assert.IsTrue(payload.SequenceEqual(received));
         }
@@ -61,7 +62,7 @@ namespace DataLink.NET.Tests
         [TestMethod]
         public void ConstructorWithNullFormatterThrows()
         {
-            Assert.ThrowsExactly<ArgumentNullException>(() => new DataLink(null, _mockComm));
+            Assert.ThrowsExactly<ArgumentNullException>(() => new DataLink(null, _mockChannel));
         }
 
         [TestMethod]
@@ -73,35 +74,35 @@ namespace DataLink.NET.Tests
         [TestMethod]
         public void SendWithNullPayloadThrows()
         {
-            Assert.ThrowsExactly<ArgumentNullException>(() => _serialTest.Send(null));
+            Assert.ThrowsExactly<ArgumentNullException>(() => _dataLink.Send(null));
         }
 
         [TestMethod]
         public void SelectDeviceWithNullNameThrows()
         {
-            Assert.ThrowsExactly<ArgumentNullException>(() => _serialTest.SelectDevice(null));
+            Assert.ThrowsExactly<ArgumentNullException>(() => _dataLink.SelectDevice(null));
         }
 
         [TestMethod]
         public void DisposeUnsubscribesAndDisposesChannel()
         {
-            Assert.AreEqual(1, _mockComm.DataReceivedSubscribers);
+            Assert.AreEqual(1, _mockChannel.DataReceivedSubscribers);
 
-            _serialTest.Dispose();
-            _serialTest.Dispose();
+            _dataLink.Dispose();
+            _dataLink.Dispose();
 
-            Assert.AreEqual(0, _mockComm.DataReceivedSubscribers);
-            Assert.IsTrue(_mockComm.IsDisposed);
+            Assert.AreEqual(0, _mockChannel.DataReceivedSubscribers);
+            Assert.IsTrue(_mockChannel.IsDisposed);
         }
 
         [TestMethod]
         public void MethodsThrowAfterDispose()
         {
-            _serialTest.Dispose();
+            _dataLink.Dispose();
 
-            Assert.ThrowsExactly<ObjectDisposedException>(() => _serialTest.GetDeviceNames());
-            Assert.ThrowsExactly<ObjectDisposedException>(() => _serialTest.SelectDevice("a"));
-            Assert.ThrowsExactly<ObjectDisposedException>(() => _serialTest.Send(new byte[] { 0x01 }));
+            Assert.ThrowsExactly<ObjectDisposedException>(() => _dataLink.GetDeviceNames());
+            Assert.ThrowsExactly<ObjectDisposedException>(() => _dataLink.SelectDevice("a"));
+            Assert.ThrowsExactly<ObjectDisposedException>(() => _dataLink.Send(new byte[] { 0x01 }));
         }
 
         [TestMethod]
@@ -110,12 +111,12 @@ namespace DataLink.NET.Tests
             var receivedPackets = new List<byte[]>();
             Exception reported = null;
 
-            _serialTest.PacketReceived += (_, _) => throw new InvalidOperationException("handler failure");
-            _serialTest.PacketReceived += (_, payload) => receivedPackets.Add(payload);
-            _serialTest.PacketHandlerError += (_, exception) => reported = exception;
+            _dataLink.PacketReceived += (_, _) => throw new InvalidOperationException("handler failure");
+            _dataLink.PacketReceived += (_, payload) => receivedPackets.Add(payload);
+            _dataLink.PacketHandlerError += (_, exception) => reported = exception;
 
             var payloadToSend = new byte[] { 0x41, 0x42, 0x43 };
-            _serialTest.Send(payloadToSend);
+            _dataLink.Send(payloadToSend);
 
             Assert.AreEqual(1, receivedPackets.Count);
             Assert.IsTrue(payloadToSend.SequenceEqual(receivedPackets[0]));

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using DataLink.NET.Framing;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace DataLink.NET.Tests

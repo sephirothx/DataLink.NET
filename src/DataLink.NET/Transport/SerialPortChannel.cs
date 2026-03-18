@@ -2,9 +2,9 @@
 using System.IO.Ports;
 using DataLink.NET.Interfaces;
 
-namespace DataLink.NET
+namespace DataLink.NET.Transport
 {
-    class SerialPortProxy : ICommunicationChannel, IDisposable
+    class SerialPortChannel : ICommunicationChannel, IDisposable
     {
         private readonly SerialPort _serialPort;
         private bool _disposed;
@@ -13,11 +13,11 @@ namespace DataLink.NET
 
         public int BytesToRead => _serialPort.BytesToRead;
 
-        public SerialPortProxy()
+        public SerialPortChannel()
             : this(new SerialPortOptions())
         {}
 
-        public SerialPortProxy(SerialPortOptions options)
+        public SerialPortChannel(SerialPortOptions options)
         {
             ArgumentNullException.ThrowIfNull(options);
 

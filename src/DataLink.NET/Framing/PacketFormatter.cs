@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using DataLink.NET.Helpers;
 using DataLink.NET.Interfaces;
 
-namespace DataLink.NET
+namespace DataLink.NET.Framing
 {
     class PacketFormatter : IPacketFormatter
     {
